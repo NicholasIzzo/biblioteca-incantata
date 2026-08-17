@@ -119,6 +119,33 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
     await aggiorna();
   }
 
+  /**
+   * Libri d'esempio inclusi nel sito: chi arriva senza un EPUB a portata
+   * vedrebbe una biblioteca vuota e non capirebbe a cosa serve.
+   */
+  async function provaEsempi() {
+    const nomi = [
+      "il-drago-di-vetro.epub",
+      "un-cuore-in-prestito.epub",
+      "indagine-a-mezzanotte.epub",
+    ];
+    setInCorso(true);
+    try {
+      const files: File[] = [];
+      for (const nome of nomi) {
+        const risposta = await fetch(`${import.meta.env.BASE_URL}esempi/${nome}`);
+        if (!risposta.ok) continue;
+        files.push(new File([await risposta.blob()], nome, { type: "application/epub+zip" }));
+      }
+      setInCorso(false);
+      if (files.length > 0) await importa(files as unknown as FileList);
+      else setEsiti([{ nome: "esempi", stato: "errore", dettaglio: "non scaricabili" }]);
+    } catch (e) {
+      setInCorso(false);
+      setEsiti([{ nome: "esempi", stato: "errore", dettaglio: String(e).slice(0, 80) }]);
+    }
+  }
+
   const ok = esiti.filter((e) => e.stato === "ok").length;
   const saltati = esiti.filter((e) => e.stato === "salta").length;
   const errori = esiti.filter((e) => e.stato === "errore");
@@ -150,6 +177,11 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
         <button className="btn-oro" disabled={inCorso} onClick={() => inputRef.current?.click()}>
           {inCorso ? "Sto leggendo…" : "📂 Scegli i file EPUB"}
         </button>
+        {presenti === 0 && !inCorso && (
+          <button className="btn-fantasma" onClick={() => void provaEsempi()}>
+            ✨ Prova con tre libri d'esempio
+          </button>
+        )}
         {presenti > 0 && !inCorso && (
           <button className="btn-fantasma" onClick={onFatto}>
             ✨ Entra nella tua biblioteca ({presenti})
