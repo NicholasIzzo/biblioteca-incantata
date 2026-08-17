@@ -4,6 +4,8 @@ import {
   elencoVoci,
   idLibro,
   salvaVoce,
+  persistenzaConcessa,
+  richiediPersistenza,
   spazio,
   svuotaArchivio,
   type VoceArchivio,
@@ -34,11 +36,13 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
   const [esiti, setEsiti] = useState<Esito[]>([]);
   const [presenti, setPresenti] = useState(0);
   const [occupato, setOccupato] = useState(0);
+  const [persistente, setPersistente] = useState(false);
 
   const aggiorna = async () => {
     const voci = await elencoVoci();
     setPresenti(voci.length);
     setOccupato((await spazio()).usati);
+    setPersistente(await persistenzaConcessa());
   };
 
   useEffect(() => {
@@ -116,6 +120,8 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
 
     setCorrente("");
     setInCorso(false);
+    // Ora che c'è qualcosa da perdere, si chiede al browser di conservarlo.
+    if (nuoviEsiti.some((e) => e.stato === "ok")) await richiediPersistenza();
     await aggiorna();
   }
 
@@ -161,6 +167,11 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
         <strong>I file non vengono caricati da nessuna parte</strong>: restano su questo
         dispositivo, e per questo non serve alcun account.
       </p>
+      <p className="importa-durata">
+        La libreria resta anche dopo aver chiuso: non dovrai reimportarla ogni volta.
+        Sparisce solo se cancelli i dati di navigazione. Su iPhone, per non perderla,
+        conviene aggiungere il sito alla schermata Home.
+      </p>
 
       <input
         ref={inputRef}
@@ -191,7 +202,14 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
 
       {presenti > 0 && (
         <p className="importa-spazio">
-          {presenti} libri sul dispositivo · {mb(occupato)} occupati
+          {presenti} libri sul dispositivo · {mb(occupato)} occupati ·{" "}
+          {persistente ? (
+            <span className="importa-sicuro">conservati stabilmente</span>
+          ) : (
+            <span className="importa-fragile" title="Il browser può liberare lo spazio se il disco si riempie">
+              conservazione non garantita
+            </span>
+          )}
           {!inCorso && (
             <button
               className="importa-svuota"

@@ -521,3 +521,11 @@ h1, h2, h3, .serif { font-family: Georgia, "Times New Roman", serif; }
   color: #ffd9b0; border-radius: 12px; padding: 0.6em 1em;
   font-size: 0.84rem; line-height: 1.45; backdrop-filter: blur(6px);
 }
+
+.importa-sicuro { color: #9fe8c0; }
+.importa-fragile { color: #ffcf8a; border-bottom: 1px dotted currentColor; cursor: help; }
+
+.importa-durata {
+  color: #9a8fb8; font-size: 0.78rem; line-height: 1.5;
+  margin: -0.6rem auto 1.3rem; max-width: 30rem;
+}

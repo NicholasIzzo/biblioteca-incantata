@@ -106,3 +106,34 @@ export function idLibro(titolo: string, autore: string): string {
   }
   return `ep-${(h >>> 0).toString(36)}`;
 }
+
+/**
+ * Chiede al browser di conservare davvero questi dati.
+ *
+ * Senza questo permesso lo spazio dei siti è "a discrezione": quando il disco
+ * si riempie il browser può liberarlo, e su iPhone Safari lo cancella dopo
+ * sette giorni senza visite. Con il permesso concesso la libreria resta finché
+ * non è l'utente a cancellarla.
+ *
+ * Si chiede **dopo** il primo import, non all'apertura: Firefox mostra una
+ * richiesta esplicita, e ha senso porla a chi ha già caricato qualcosa da
+ * perdere, non a chi ha appena aperto il sito.
+ */
+export async function richiediPersistenza(): Promise<boolean> {
+  try {
+    if (!navigator.storage?.persist) return false;
+    if (await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  } catch {
+    return false;
+  }
+}
+
+/** Se il browser si è già impegnato a conservare i dati. */
+export async function persistenzaConcessa(): Promise<boolean> {
+  try {
+    return (await navigator.storage?.persisted?.()) ?? false;
+  } catch {
+    return false;
+  }
+}
