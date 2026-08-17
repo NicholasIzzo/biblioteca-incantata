@@ -24,7 +24,9 @@ interface Esito {
   dettaglio?: string;
 }
 
-const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
+/** Una libreria appena nata pesa pochi KB: "0.0 MB" sembrerebbe un errore. */
+const peso = (b: number) =>
+  b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
 
 /** Import degli EPUB dal dispositivo: i file non lasciano il browser. */
 export function ImportaEpub({ onFatto, onChiudi }: Props) {
@@ -202,7 +204,7 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
 
       {presenti > 0 && (
         <p className="importa-spazio">
-          {presenti} libri sul dispositivo · {mb(occupato)} occupati ·{" "}
+          {presenti} libri sul dispositivo · {peso(occupato)} occupati ·{" "}
           {persistente ? (
             <span className="importa-sicuro">conservati stabilmente</span>
           ) : (
@@ -213,6 +215,7 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
           {!inCorso && (
             <button
               className="importa-svuota"
+              aria-label="Svuota la biblioteca di questo dispositivo"
               onClick={async () => {
                 if (!confirm("Svuotare la biblioteca di questo dispositivo?")) return;
                 await svuotaArchivio();
@@ -220,7 +223,7 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
                 await aggiorna();
               }}
             >
-              svuota
+              · svuota
             </button>
           )}
         </p>
