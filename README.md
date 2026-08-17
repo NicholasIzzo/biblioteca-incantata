@@ -35,8 +35,16 @@ nessun costo.
 
 - I file EPUB e i loro dati stanno in **IndexedDB**, nel tuo browser.
 - Non esiste un server a cui mandarli: il sito è statico.
-- Svuotando i dati del browser la libreria si svuota. Su iPhone, se il sistema
-  ha bisogno di spazio, può cancellarli: in quel caso vanno reimportati.
+
+**La libreria resta anche dopo aver chiuso**: non va reimportata a ogni visita.
+Dopo il primo import l app chiede al browser di conservare i dati in modo
+stabile (`navigator.storage.persist()`), che li esenta dalla cancellazione
+automatica quando lo spazio scarseggia.
+
+Si perde solo se: cancelli i dati di navigazione, navighi in incognito, o usi
+un altro browser o dispositivo (ogni browser ha la sua libreria). Su **iPhone in
+Safari** i dati dei siti non visitati vengono cancellati dopo sette giorni:
+aggiungendo il sito alla schermata Home questo non succede.
 
 ## Sviluppo
 
