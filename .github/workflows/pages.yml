@@ -32,10 +32,9 @@ jobs:
         run: npm run build
         env:
           BASE: /${{ github.event.repository.name }}/
+      # Pages e gia attivato sul repository con sorgente "GitHub Actions":
+      # chiederne la creazione da qui fallisce, il token del workflow non puo.
       - uses: actions/configure-pages@v5
-        with:
-          # attiva Pages al primo giro, senza doverlo fare a mano nelle impostazioni
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
