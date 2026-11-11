@@ -529,3 +529,13 @@ h1, h2, h3, .serif { font-family: Georgia, "Times New Roman", serif; }
   color: #9a8fb8; font-size: 0.78rem; line-height: 1.5;
   margin: -0.6rem auto 1.3rem; max-width: 30rem;
 }
+
+/* Avviso quando il browser nega l'archivio: deve farsi leggere, non decorare. */
+.importa-allarme {
+  color: #ffd9a8; font-size: 0.84rem; line-height: 1.6;
+  margin: 0 auto 1.3rem; max-width: 30rem; padding: 0.75rem 0.9rem;
+  background: rgba(120, 60, 20, 0.35);
+  border: 1px solid rgba(255, 190, 120, 0.45);
+  border-radius: 0.6rem; text-align: left;
+}
+.importa-allarme strong { color: #ffe9c8; }

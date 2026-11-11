@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   LIMITE_FILE,
+  archivioVolatile,
   elencoVoci,
   idLibro,
   salvaVoce,
@@ -39,12 +40,14 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
   const [presenti, setPresenti] = useState(0);
   const [occupato, setOccupato] = useState(0);
   const [persistente, setPersistente] = useState(false);
+  const [volatile, setVolatile] = useState(false);
 
   const aggiorna = async () => {
     const voci = await elencoVoci();
     setPresenti(voci.length);
     setOccupato((await spazio()).usati);
     setPersistente(await persistenzaConcessa());
+    setVolatile(archivioVolatile());
   };
 
   useEffect(() => {
@@ -59,11 +62,18 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
   }, []);
 
   async function importa(files: FileList) {
-    const epub = Array.from(files).filter((f) => /\.epub$/i.test(f.name));
-    if (epub.length === 0) {
-      setEsiti([{ nome: "—", stato: "errore", dettaglio: "nessun file .epub selezionato" }]);
-      return;
-    }
+    const scelti = Array.from(files);
+    if (scelti.length === 0) return;
+    /*
+     * Si preferiscono i file che si dichiarano EPUB, ma se nessuno lo fa si
+     * provano comunque tutti: da alcuni gestori di file su telefono il nome
+     * arriva senza estensione, e rifiutarli a priori significava dire "nessun
+     * file .epub selezionato" a chi ne aveva appena scelto uno valido.
+     */
+    const dichiarati = scelti.filter(
+      (f) => /\.epub$/i.test(f.name) || /epub/i.test(f.type),
+    );
+    const epub = dichiarati.length > 0 ? dichiarati : scelti;
     setInCorso(true);
     setTotale(epub.length);
     setFatti(0);
@@ -140,14 +150,26 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
     setInCorso(true);
     try {
       const files: File[] = [];
+      const guasti: Esito[] = [];
       for (const nome of nomi) {
-        const risposta = await fetch(`${import.meta.env.BASE_URL}esempi/${nome}`);
-        if (!risposta.ok) continue;
-        files.push(new File([await risposta.blob()], nome, { type: "application/epub+zip" }));
+        try {
+          // niente cache: se il service worker ne tiene una vecchia o monca,
+          // il tasto "esempi" fallirebbe per sempre senza dire perché
+          const risposta = await fetch(`${import.meta.env.BASE_URL}esempi/${nome}`, {
+            cache: "no-store",
+          });
+          if (!risposta.ok) {
+            guasti.push({ nome, stato: "errore", dettaglio: `scaricamento HTTP ${risposta.status}` });
+            continue;
+          }
+          files.push(new File([await risposta.blob()], nome, { type: "application/epub+zip" }));
+        } catch (e) {
+          guasti.push({ nome, stato: "errore", dettaglio: `rete: ${String(e).slice(0, 60)}` });
+        }
       }
       setInCorso(false);
       if (files.length > 0) await importa(files as unknown as FileList);
-      else setEsiti([{ nome: "esempi", stato: "errore", dettaglio: "non scaricabili" }]);
+      else setEsiti(guasti.length > 0 ? guasti : [{ nome: "esempi", stato: "errore", dettaglio: "non scaricabili" }]);
     } catch (e) {
       setInCorso(false);
       setEsiti([{ nome: "esempi", stato: "errore", dettaglio: String(e).slice(0, 80) }]);
@@ -175,10 +197,27 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
         conviene aggiungere il sito alla schermata Home.
       </p>
 
+      {volatile && (
+        <p className="importa-allarme">
+          ⚠️ <strong>Questo browser non ci lascia salvare i libri.</strong> Succede quasi
+          sempre quando il sito è aperto dentro un'altra app (TikTok, Instagram, Facebook)
+          o in navigazione privata. Puoi guardarti attorno lo stesso, ma la libreria
+          sparirà chiudendo la pagina. Per tenerla: apri questo indirizzo in{" "}
+          <strong>Chrome</strong> o <strong>Safari</strong> — dal menù ⋯ in alto, «Apri nel
+          browser».
+        </p>
+      )}
+
       <input
         ref={inputRef}
         type="file"
-        accept=".epub,application/epub+zip"
+        /*
+         * Elenco largo di proposito. Android non filtra per estensione ma per
+         * tipo MIME, e molti gestori di file dichiarano un EPUB come zip o come
+         * octet-stream: con il solo "application/epub+zip" i libri appaiono in
+         * grigio e non si riesce a sceglierne nemmeno uno.
+         */
+        accept=".epub,application/epub+zip,application/zip,application/x-zip-compressed,application/octet-stream"
         multiple
         hidden
         onChange={(e) => {
@@ -204,8 +243,12 @@ export function ImportaEpub({ onFatto, onChiudi }: Props) {
 
       {presenti > 0 && (
         <p className="importa-spazio">
-          {presenti} libri sul dispositivo · {peso(occupato)} occupati ·{" "}
-          {persistente ? (
+          {presenti} libri {volatile ? "aperti ora" : "sul dispositivo"} · {peso(occupato)} occupati ·{" "}
+          {volatile ? (
+            <span className="importa-fragile" title="Il browser non concede l'archivio: i libri vivono solo finché resta aperta questa pagina">
+              solo per questa visita
+            </span>
+          ) : persistente ? (
             <span className="importa-sicuro">conservati stabilmente</span>
           ) : (
             <span className="importa-fragile" title="Il browser può liberare lo spazio se il disco si riempie">
